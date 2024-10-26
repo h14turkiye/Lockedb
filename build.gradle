@@ -35,10 +35,8 @@ java {
     withSourcesJar()
 }
 
-shadow.archiveClassifier.set("")
-
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-  
+  archiveClassifier.set("")
   relocate 'com.tcoded.folialib', 'com.h14turkiye.mcschedlock.relocated.github.tcoded.folialib'
   relocate 'org.bson', 'com.h14turkiye.mcschedlock.relocated.org.bson'
   relocate 'com.mongodb', 'com.h14turkiye.mcschedlock.relocated.com.mongodb'
