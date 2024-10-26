@@ -1,0 +1,70 @@
+plugins {
+  id 'java'
+  id 'eclipse'
+  id 'maven-publish'
+  id 'com.gradleup.shadow' version '8.3.3'
+}
+
+group = 'com.github.h14turkiye'
+
+sourceCompatibility = '21'
+targetCompatibility = '21'
+
+repositories {
+  gradlePluginPortal()
+  mavenCentral()
+  maven { url = 'https://jitpack.io' }
+
+  maven {
+        url = "https://repo.papermc.io/repository/maven-public/"
+    }
+}
+
+dependencies {
+  implementation 'org.mongodb:bson:4.9.1'
+  implementation 'org.mongodb:mongo-java-driver:3.12.10'
+  implementation 'com.github.technicallycoded:FoliaLib:main-SNAPSHOT'
+
+  compileOnly 'io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT'
+
+  testCompileOnly 'io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT'
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+  relocate 'com.tcoded.folialib', 'com.h14turkiye.mcschedlock.relocated.github.tcoded.folialib'
+  relocate 'org.bson', 'com.h14turkiye.mcschedlock.relocated.org.bson'
+  relocate 'com.mongodb', 'com.h14turkiye.mcschedlock.relocated.com.mongodb'
+}
+
+publishing {
+  publications {
+    shadow(MavenPublication) {
+      components.shadow
+    }
+  }
+}
+
+
+/* Test Stuff */
+
+task compileTestShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+    archiveClassifier.set('test-plugin')
+
+    // Include both main and test output
+    from sourceSets.main.output
+    from sourceSets.test.output
+
+    configurations = [project.configurations.testRuntimeClasspath]
+    configurations = [project.configurations.runtimeClasspath, project.configurations.testRuntimeClasspath]
+}
+
+tasks.named('compileTestShadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+  relocate 'com.tcoded.folialib', 'com.h14turkiye.mcschedlock.relocated.github.tcoded.folialib'
+  relocate 'org.bson', 'com.h14turkiye.mcschedlock.relocated.org.bson'
+  relocate 'com.mongodb', 'com.h14turkiye.mcschedlock.relocated.com.mongodb'
+}
