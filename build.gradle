@@ -30,11 +30,6 @@ dependencies {
   testCompileOnly 'io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT'
 }
 
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
   archiveClassifier.set("")
   relocate 'com.tcoded.folialib', 'com.h14turkiye.mcschedlock.relocated.github.tcoded.folialib'
