@@ -1,0 +1,10 @@
+name: TestMcschedlock
+version: 1.0
+main: com.h14turkiye.testplugin.mcschedlock.TestMCSLPlugin
+authors: [ h14turkiye ]
+description: Test plugin for mcschedlock
+api-version: 1.18
+commands:
+  initiateTestMCSL:
+    description: tests
+    permission: test.mcschedlock
