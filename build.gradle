@@ -57,8 +57,8 @@ publishing {
       name = "GitHubPackages"
       url = uri("https://maven.pkg.github.com/h14turkiye/McShedLock")
       credentials {
-        username = h14turkiye
-          password = project.findProperty("gpr.key") ?: System.getenv("GHP_TOKEN")
+        username = "h14turkiye"
+        password = project.findProperty("gpr.key") ?: System.getenv("GHP_TOKEN")
       }
     }
   }
