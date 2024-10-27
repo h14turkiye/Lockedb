@@ -3,10 +3,11 @@ plugins {
   id 'eclipse'
   id 'maven-publish'
   id 'com.gradleup.shadow' version '8.3.3'
+  id 'pl.allegro.tech.build.axion-release' version '1.18.7'
 }
 
 group = 'com.github.h14turkiye'
-
+version = scmVersion.version
 sourceCompatibility = '21'
 targetCompatibility = '21'
 
