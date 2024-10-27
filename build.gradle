@@ -11,6 +11,12 @@ version = scmVersion.version
 sourceCompatibility = '21'
 targetCompatibility = '21'
 
+scmVersion {
+  checks {
+    aheadOfRemote.set(false)
+  }
+}
+
 repositories {
   gradlePluginPortal()
   mavenCentral()
