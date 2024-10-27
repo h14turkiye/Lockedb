@@ -8,8 +8,12 @@ plugins {
 
 group = 'com.github.h14turkiye'
 version = scmVersion.version
-sourceCompatibility = '21'
-targetCompatibility = '21'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 scmVersion {
   checks {
