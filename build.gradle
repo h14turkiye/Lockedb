@@ -14,6 +14,7 @@ targetCompatibility = '21'
 scmVersion {
   checks {
     aheadOfRemote.set(false)
+    snapshotDependencies.set(false)
   }
 }
 
