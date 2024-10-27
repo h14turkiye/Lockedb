@@ -4,4 +4,4 @@ pluginManagement {
         mavenCentral()
     }
 }
-rootProject.name = 'MCSchedLock'
+rootProject.name = 'mcschedlock'
