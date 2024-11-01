@@ -10,6 +10,7 @@ import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
 
 public class LockConnect {
     public static Class<? extends AsyncLock> asyncLockType;
@@ -58,6 +59,19 @@ public class LockConnect {
 
         MongoClient mongoClient = MongoClients.create(settings);
         database = mongoClient.getDatabase(dbname);
+        new MongoAsyncLock("startup");
+    }
+
+    /**
+     * Connects to a MongoDB database instance for using with the {@link MongoAsyncLock} implementation.
+     * 
+     * @param plugin The plugin instance to associate with the lock provider.
+     * @param database The MongoDB database instance to connect to.
+     */
+    public static void connectToMongoDB(Plugin plugin, MongoDatabase database) {
+        LockConnect.plugin = plugin;
+        asyncLockType = MongoAsyncLock.class;
+        LockConnect.database = database;
         new MongoAsyncLock("startup");
     }
 
