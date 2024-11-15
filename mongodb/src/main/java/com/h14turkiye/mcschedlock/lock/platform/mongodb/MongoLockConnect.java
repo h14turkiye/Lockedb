@@ -1,10 +1,10 @@
-package com.h14turkiye.mcschedlock.lock;
+package com.h14turkiye.mcschedlock.lock.platform.mongodb;
 
 import java.util.Collections;
 
 import org.bukkit.plugin.Plugin;
 
-import com.h14turkiye.mcschedlock.lock.platform.mongodb.MongoAsyncLock;
+import com.h14turkiye.mcschedlock.lock.LockConnect;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
@@ -12,10 +12,8 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
-public class LockConnect {
-    public static Class<? extends AsyncLock> asyncLockType;
-    public static Object database; // Database Instance
-    public static Plugin plugin;
+public class MongoLockConnect {
+    public static MongoDatabase database; // Database Instance
 
     /**
      * Connects to a MongoDB database, setting the database instance.
@@ -30,7 +28,7 @@ public class LockConnect {
      */
     public static void connectToMongoDB(Plugin plugin, String dbname, String host, int port, String username, String password, String dbauth, boolean useSsl) {
         LockConnect.plugin = plugin;
-        asyncLockType = MongoAsyncLock.class;
+        LockConnect.asyncLockType = MongoAsyncLock.class;
         
         // Create MongoDB credentials if username and password are provided
         MongoCredential credential = null;
@@ -70,8 +68,8 @@ public class LockConnect {
      */
     public static void connectToMongoDB(Plugin plugin, MongoDatabase database) {
         LockConnect.plugin = plugin;
-        asyncLockType = MongoAsyncLock.class;
-        LockConnect.database = database;
+        LockConnect.asyncLockType = MongoAsyncLock.class;
+        MongoLockConnect.database = database;
         new MongoAsyncLock("startup");
     }
 

@@ -5,3 +5,5 @@ pluginManagement {
     }
 }
 rootProject.name = 'mcschedlock'
+include 'core'
+include 'mongodb'

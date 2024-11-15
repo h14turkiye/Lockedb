@@ -7,7 +7,6 @@ import java.util.concurrent.TimeUnit;
 import org.bson.Document;
 
 import com.h14turkiye.mcschedlock.lock.AsyncLock;
-import com.h14turkiye.mcschedlock.lock.LockConnect;
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -35,7 +34,7 @@ public class MongoAsyncLock extends AsyncLock {
     
     private void initialize() {
         if (database == null) {
-            database = (MongoDatabase) LockConnect.getDatabase();
+            database = (MongoDatabase) MongoLockConnect.getDatabase();
             locksCollection = database.listCollectionNames().into(new ArrayList<>()).contains("locks") ? 
             database.getCollection("locks") : createLocksCollection();
             FoliaLib foliaLib = new FoliaLib(plugin);
