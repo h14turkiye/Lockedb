@@ -1,9 +1,7 @@
 plugins {
     id 'java'
-    id 'eclipse'
     id 'maven-publish'
     id 'pl.allegro.tech.build.axion-release' version '1.18.7'
-    id 'com.gradleup.shadow' version '8.3.3'
 }
 
 group = 'com.github.h14turkiye'
@@ -12,7 +10,6 @@ version = scmVersion.version
 subprojects {
     apply plugin: 'maven-publish'
     apply plugin: 'java'
-    apply plugin: 'com.gradleup.shadow'
 
     group = rootProject.group
     version = rootProject.version
@@ -31,27 +28,19 @@ subprojects {
     }
 
     dependencies {
-        compileOnly 'io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT'
-        implementation 'com.github.technicallycoded:FoliaLib:main-SNAPSHOT'
+        compileOnly 'org.projectlombok:lombok:1.18.36'
+	    annotationProcessor 'org.projectlombok:lombok:1.18.36'
     }
-
-    tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-        relocate 'com.tcoded.folialib', 'com.h14turkiye.mcschedlock.relocated.github.tcoded.folialib'
-        archiveClassifier = ''
-    }
-
-    assemble.dependsOn shadowJar
 
     jar {
         from project(':core').sourceSets.main.output  // Include :core classes in the JAR
-        archiveClassifier = 'not-shaded'
     }
 
     publishing {
         publications {
             mavenJava(MavenPublication) {
                 from components.java
-                artifactId = "mcschedlock-${project.name}"
+                artifactId = "lockedb-${project.name}"
             }
         }
     }
@@ -67,21 +56,20 @@ project(':mongodb') {
         implementation 'org.mongodb:bson:4.9.1'
         implementation 'org.mongodb:mongo-java-driver:3.12.10'
 
-        testImplementation('org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.3.1')
         testImplementation(platform('org.junit:junit-bom:5.11.3'))
 	    testImplementation('org.junit.jupiter:junit-jupiter')
 	    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
-    }
 
-    tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-        relocate 'org.bson', 'com.h14turkiye.mcschedlock.relocated.org.bson'
-        relocate 'com.mongodb', 'com.h14turkiye.mcschedlock.relocated.com.mongodb'
+        testImplementation 'org.testcontainers:mongodb:1.20.6'
+        testImplementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.24.3' 
+        testImplementation 'org.apache.logging.log4j:log4j-api:2.24.3'
     }
 
     tasks.test {
         useJUnitPlatform()
         testLogging {
-            events "passed", "skipped", "failed"
+            showStandardStreams = true
+            events "passed", "skipped", "failed", "standardOut", "standardError"
         }
     }
 }
