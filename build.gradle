@@ -1,88 +1,75 @@
 plugins {
-  id 'java'
-  id 'eclipse'
-  id 'maven-publish'
-  id 'com.gradleup.shadow' version '8.3.3'
-  id 'pl.allegro.tech.build.axion-release' version '1.18.7'
+    id 'java'
+    id 'maven-publish'
+    id 'pl.allegro.tech.build.axion-release' version '1.18.7'
 }
 
 group = 'com.github.h14turkiye'
 version = scmVersion.version
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+subprojects {
+    apply plugin: 'maven-publish'
+    apply plugin: 'java'
+
+    group = rootProject.group
+    version = rootProject.version
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url = 'https://jitpack.io' }
+        maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    dependencies {
+        compileOnly 'org.projectlombok:lombok:1.18.36'
+	    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+    }
+
+    jar {
+        from project(':core').sourceSets.main.output  // Include :core classes in the JAR
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                artifactId = "lockedb-${project.name}"
+            }
+        }
     }
 }
 
-scmVersion {
-  checks {
-    aheadOfRemote.set(false)
-    snapshotDependencies.set(false)
-  }
+tasks.named('assemble') {
+    dependsOn subprojects*.tasks*.assemble
 }
 
-repositories {
-  gradlePluginPortal()
-  mavenCentral()
-  maven { url = 'https://jitpack.io' }
+project(':mongodb') {
+    dependencies {
+        implementation project(':core')
+        implementation 'org.mongodb:bson:4.9.1'
+        implementation 'org.mongodb:mongo-java-driver:3.12.10'
 
-  maven { url = 'https://repo.papermc.io/repository/maven-public/' }
-}
+        testImplementation(platform('org.junit:junit-bom:5.11.3'))
+	    testImplementation('org.junit.jupiter:junit-jupiter')
+	    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 
-dependencies {
-  implementation 'org.mongodb:bson:4.9.1'
-  implementation 'org.mongodb:mongo-java-driver:3.12.10'
-  implementation 'com.github.technicallycoded:FoliaLib:main-SNAPSHOT'
-
-  compileOnly 'io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT'
-
-  testCompileOnly 'io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT'
-}
-
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
-assemble.dependsOn shadowJar
-
-tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-  relocate 'com.tcoded.folialib', 'com.h14turkiye.mcschedlock.relocated.github.tcoded.folialib'
-  relocate 'org.bson', 'com.h14turkiye.mcschedlock.relocated.org.bson'
-  relocate 'com.mongodb', 'com.h14turkiye.mcschedlock.relocated.com.mongodb'
-}
-
-
-publishing {
-  publications {
-    shadow(MavenPublication) {
-      components.shadow
-      
-      artifact(tasks.named('shadowJar').get()) {
-        classifier = ''
-      }
-      artifact(tasks.named('javadocJar').get())
-      artifact(tasks.named('sourcesJar').get())
+        testImplementation 'org.testcontainers:mongodb:1.20.6'
+        testImplementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.24.3' 
+        testImplementation 'org.apache.logging.log4j:log4j-api:2.24.3'
     }
-  }
-}
 
-/* Test Stuff */
-
-task compileTestShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-    archiveClassifier.set('test-plugin')
-
-    // Include both main and test output
-    from sourceSets.main.output
-    from sourceSets.test.output
-
-    configurations = [project.configurations.testRuntimeClasspath]
-    configurations = [project.configurations.runtimeClasspath, project.configurations.testRuntimeClasspath]
-}
-
-tasks.named('compileTestShadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-  relocate 'com.tcoded.folialib', 'com.h14turkiye.mcschedlock.relocated.github.tcoded.folialib'
-  relocate 'org.bson', 'com.h14turkiye.mcschedlock.relocated.org.bson'
-  relocate 'com.mongodb', 'com.h14turkiye.mcschedlock.relocated.com.mongodb'
+    tasks.test {
+        useJUnitPlatform()
+        testLogging {
+            showStandardStreams = true
+            events "passed", "skipped", "failed", "standardOut", "standardError"
+        }
+    }
 }

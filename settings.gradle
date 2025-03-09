@@ -4,4 +4,6 @@ pluginManagement {
         mavenCentral()
     }
 }
-rootProject.name = 'mcschedlock'
+rootProject.name = 'lockedb'
+include 'core'
+include 'mongodb'
