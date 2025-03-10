@@ -7,3 +7,4 @@ pluginManagement {
 rootProject.name = 'lockedb'
 include 'core'
 include 'mongodb'
+include 'redis'

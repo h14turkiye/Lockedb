@@ -4,7 +4,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -96,14 +95,9 @@ public class MongoLock extends ALock {
     
     private CompletableFuture<Void> attemptLockAcquisition() {
         return CompletableFuture.runAsync(() -> {
-            try {
-                if (acquireFuture.isDone() && acquireFuture.get() == false) {
-                    // [DEBUG] Lock already determined as non-acquirable.
-                    return;
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                // [ERROR] Error checking acquireFuture state: 
-                e.printStackTrace();
+            if (acquireFuture.isDone()) {
+                // [DEBUG] Lock already determined as non-acquirable.
+                return;
             }
             
             if (timeoutMS > 0) {
@@ -124,14 +118,9 @@ public class MongoLock extends ALock {
                         scheduleExpirationRemoval();
                     }
                 });
-                try {
-                    if (acquireFuture.isDone() && acquireFuture.get()) {
-                        // [DEBUG] Lock acquired via password match.
-                        return;
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    // [ERROR] Exception after password-based lock acquisition: 
-                    e.printStackTrace();
+                if (acquireFuture.isDone()) {
+                    // [DEBUG] Lock acquired via password match.
+                    return;
                 }
             }
             

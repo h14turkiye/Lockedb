@@ -28,12 +28,23 @@ subprojects {
     }
 
     dependencies {
-        compileOnly 'org.projectlombok:lombok:1.18.36'
-	    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+        testImplementation(platform('org.junit:junit-bom:5.11.3'))
+	    testImplementation('org.junit.jupiter:junit-jupiter')
+	    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+        testImplementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.24.3' 
+        testImplementation 'org.apache.logging.log4j:log4j-api:2.24.3'
     }
 
     jar {
         from project(':core').sourceSets.main.output  // Include :core classes in the JAR
+    }
+
+    tasks.test {
+        useJUnitPlatform()
+        testLogging {
+            showStandardStreams = true
+            events "passed", "skipped", "failed", "standardOut", "standardError"
+        }
     }
 
     publishing {
@@ -43,6 +54,19 @@ subprojects {
                 artifactId = "lockedb-${project.name}"
             }
         }
+    }
+}
+
+project(':core') {
+    dependencies {
+        compileOnly 'org.projectlombok:lombok:1.18.36'
+	    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+
+        implementation(platform('org.junit:junit-bom:5.11.3'))
+        implementation('org.junit.jupiter:junit-jupiter')
+        runtimeOnly('org.junit.platform:junit-platform-launcher')
+        implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.24.3' 
+        implementation 'org.apache.logging.log4j:log4j-api:2.24.3'
     }
 }
 
@@ -56,20 +80,16 @@ project(':mongodb') {
         implementation 'org.mongodb:bson:4.9.1'
         implementation 'org.mongodb:mongo-java-driver:3.12.10'
 
-        testImplementation(platform('org.junit:junit-bom:5.11.3'))
-	    testImplementation('org.junit.jupiter:junit-jupiter')
-	    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
-
         testImplementation 'org.testcontainers:mongodb:1.20.6'
-        testImplementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.24.3' 
-        testImplementation 'org.apache.logging.log4j:log4j-api:2.24.3'
-    }
-
-    tasks.test {
-        useJUnitPlatform()
-        testLogging {
-            showStandardStreams = true
-            events "passed", "skipped", "failed", "standardOut", "standardError"
-        }
     }
 }
+
+project (':redis') {
+    dependencies {
+        implementation project(':core')
+        implementation 'io.lettuce:lettuce-core:6.5.4.RELEASE'
+        
+        testImplementation 'com.redis:testcontainers-redis:2.2.2'
+    }
+}
+

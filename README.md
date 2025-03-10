@@ -153,6 +153,7 @@ lock.isAcquirable().thenAccept(acquirable -> {
 Currently supported databases:
 
 - MongoDB
+- Redis/Dragonfly
 
 ## Configuration Options
 
