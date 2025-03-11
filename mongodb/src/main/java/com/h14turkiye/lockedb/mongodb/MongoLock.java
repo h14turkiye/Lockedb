@@ -4,10 +4,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.bson.Document;
@@ -21,20 +17,11 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.OperationType;
 
 public class MongoLock extends ALock {
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, new ThreadFactory() {
-        @Override
-        public Thread newThread(final Runnable r) {
-            final Thread thread = new Thread(r);
-            thread.setDaemon(true);  // Ensures it does not block JVM shutdown
-            return thread;
-        }
-    });
-    
     // Use a ConcurrentHashMap for thread-safe operations and faster lookups.
     public static ConcurrentMap<String, MongoLock> _retryingLocks = new ConcurrentHashMap<>();
 
     public static void _startWatch(final MongoCollection<Document> collection) {
-        scheduler.submit(() -> {
+        executor.submit(() -> {
             collection.watch().forEach((Consumer<ChangeStreamDocument<Document>>) event -> {
                 if (event.getOperationType().equals(OperationType.DELETE)) {
                     final String documentKey = event.getDocumentKey().getString("_id").getValue();
@@ -63,7 +50,7 @@ public class MongoLock extends ALock {
         try {
             return CompletableFuture.supplyAsync(() -> {
                 return (locksCollection.deleteOne(new Document("_id", key).append("password", password).append("uuid", uuid.toString())).getDeletedCount() == 1);
-            });
+            }, executor);
             
         } catch (final Exception e) {
             e.printStackTrace();
@@ -72,7 +59,7 @@ public class MongoLock extends ALock {
     }
     
     public CompletableFuture<Boolean> isLocked() {
-        return CompletableFuture.supplyAsync(() -> findKey(key) != null);
+        return CompletableFuture.supplyAsync(() -> findKey(key) != null, executor);
     }
     
     public CompletableFuture<Boolean> isAcquirable() {
@@ -80,7 +67,7 @@ public class MongoLock extends ALock {
             final long currentTime = System.currentTimeMillis();
             final Document lock = locksCollection.find(new Document("_id", key)).first();
             return lock == null || lock.getLong("expires") < currentTime || (password != null && password.equals(lock.getString("password")));
-        });
+        }, executor);
     }
     
     public CompletableFuture<Boolean> acquire() {
@@ -102,7 +89,7 @@ public class MongoLock extends ALock {
             
             if (timeoutMS > 0) {
                 // [DEBUG] Scheduling lock timeout in " + timeoutMS + "ms
-                scheduler.schedule(() -> acquireFuture.complete(false), timeoutMS, TimeUnit.MILLISECONDS);
+                schedule(() -> acquireFuture.complete(false), timeoutMS);
             }
             
             if (password != null) { // If the password exists
@@ -146,13 +133,13 @@ public class MongoLock extends ALock {
                     e.printStackTrace();
                 }
             }
-        });
+        }, executor);
     }    
     
     private void scheduleExpirationRemoval() {
         // Schedule a task to remove the document if expiration exists
         if (expiresAfterMS > 0) {
-            scheduler.schedule(this::release, expiresAfterMS, TimeUnit.MILLISECONDS);
+            schedule(this::release, expiresAfterMS);
         }
     }
     

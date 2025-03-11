@@ -4,10 +4,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 import com.h14turkiye.lockedb.ALock;
 import io.lettuce.core.RedisClient;
@@ -18,15 +14,6 @@ import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.lettuce.core.ScriptOutputType;
 
 public class RedisLock extends ALock {
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, new ThreadFactory() {
-        @Override
-        public Thread newThread(final Runnable r) {
-            final Thread thread = new Thread(r);
-            thread.setDaemon(true);  // Ensures it does not block JVM shutdown
-            return thread;
-        }
-    });
-    
     // TTL buffer to ensure our release() runs before Redis auto-expires the key
     private static final long TTL_BUFFER_MS = 5;
     
@@ -87,7 +74,7 @@ public class RedisLock extends ALock {
                 ).toCompletableFuture().join();
                 
                 return result == 1L;
-            });
+            }, executor);
         } catch (final Exception e) {
             e.printStackTrace();
         }
@@ -114,7 +101,7 @@ public class RedisLock extends ALock {
             // Check TTL to see if it's expired
             Long ttl = redisCommands.ttl(key).toCompletableFuture().join();
             return ttl <= 0; // Expired or no TTL set
-        });
+        }, executor);
     }
     
     public CompletableFuture<Boolean> acquire() {
@@ -132,7 +119,7 @@ public class RedisLock extends ALock {
             
             // Set up the timeout if needed
             if (timeoutMS > 0) {
-                scheduler.schedule(() -> acquireFuture.complete(false), timeoutMS, TimeUnit.MILLISECONDS);
+                schedule(() -> acquireFuture.complete(false), timeoutMS);
             }
             
             String lockValue = uuid.toString() + (password != null ? ":" + password : "");
@@ -172,13 +159,13 @@ public class RedisLock extends ALock {
                     // Don't complete the future yet, it will be completed on retry or timeout
                 }
             });
-        });
+        }, executor);
     }
     
     private void scheduleExpirationRemoval() {
         // Schedule a task to remove the document if expiration exists
         if (expiresAfterMS > 0) {
-            scheduler.schedule(this::release, expiresAfterMS, TimeUnit.MILLISECONDS);
+            schedule(this::release, expiresAfterMS);
         }
     }
 }

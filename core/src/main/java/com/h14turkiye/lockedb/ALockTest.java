@@ -9,11 +9,26 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public abstract class ALockTest {
 
     protected static LockFactory factory;
+
+    private long startTime;
+
+    @BeforeEach
+    public void beforeEach() {
+        startTime = System.nanoTime();
+    }
+
+    @AfterEach
+    public void afterEach() {
+        long duration = System.nanoTime() - startTime;
+        System.out.println("Test took " + (duration / 1_000_000.0) + " ms to complete");
+    }
 
     /**
     * Test 1: Simple acquiring lock and releasing workflow, and trying to acquire it after
@@ -63,7 +78,7 @@ public abstract class ALockTest {
     public void testLockExpirationAndChangeListeners() throws Exception {
         // Create a lock with short expiration
         ALock lock = factory.builder()
-        .expiresAfterMS(20L)  // 1 second expiration
+        .expiresAfterMS(20L)
         .timeoutMS(50L)
         .build("expiring-resource");
         

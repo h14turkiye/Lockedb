@@ -27,23 +27,6 @@ Lockedb provides a simple yet powerful API for distributed locking, allowing you
 - Optional password protection
 - Support for multiple database backends
 
-## System Requirements
-
-### Threading
-
-Lockedb uses a background thread pool for managing lock timeouts and expirations. The library requires at least 2 threads in its internal scheduled executor service.
-
-```java
-private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, new ThreadFactory() { // Mainly used for scheduling and event listening
-    @Override
-    public Thread newThread(final Runnable r) {
-        final Thread thread = new Thread(r);
-        thread.setDaemon(true); // Ensures it does not block JVM shutdown
-        return thread;
-    }
-});
-```
-
 ## Installation
 
 Add Lockedb with your preferred database to your project's dependencies. For example, with MongoDB:

@@ -56,6 +56,6 @@ public class MongoLockFactory implements LockFactory {
         return CompletableFuture.supplyAsync(()-> {
             Document lockDoc = locksCollection.find(new Document("_id", key)).first();
             return lockDoc != null ? lockDoc.getString("password") : null;
-        });
+        }, ALock.executor);
     }
 }
