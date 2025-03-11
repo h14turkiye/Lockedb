@@ -95,10 +95,7 @@ public class RedisLock extends ALock {
     }
     
     public CompletableFuture<Boolean> isLocked() {
-        return CompletableFuture.supplyAsync(() -> {
-            String value = redisCommands.get(key).toCompletableFuture().join();
-            return value != null;
-        });
+         return redisCommands.get(key).toCompletableFuture().thenApplyAsync(value -> value != null);
     }
     
     public CompletableFuture<Boolean> isAcquirable() {

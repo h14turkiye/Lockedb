@@ -1,10 +1,13 @@
 package com.h14turkiye.lockedb.redis;
 
+import java.util.concurrent.CompletableFuture;
+
 import com.h14turkiye.lockedb.ALock;
 import com.h14turkiye.lockedb.ALockBuilder;
 import com.h14turkiye.lockedb.LockFactory;
 
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.api.sync.RedisCommands;
 
 public class RedisLockFactory implements LockFactory {
@@ -29,6 +32,8 @@ public class RedisLockFactory implements LockFactory {
     public ALock createLock(String key) {
         return new RedisLock(redisClient, key);
     }
+
+    private RedisAsyncCommands<String, String> rcommands;
     
     /**
      * Initializes Redis for lock functionality. 
@@ -52,5 +57,11 @@ public class RedisLockFactory implements LockFactory {
         
         // For Redis, we don't need to create "collections" or indexes
         // Keys will expire based on the TTL we set during lock acquisition
+        rcommands = redisClient.connect().async();
+    }
+
+    @Override
+    public CompletableFuture<String> getPassword(String key) {
+        return rcommands.get(key).toCompletableFuture();
     }
 }

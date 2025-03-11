@@ -1,6 +1,7 @@
 package com.h14turkiye.lockedb.mongodb;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.Document;
@@ -48,5 +49,13 @@ public class MongoLockFactory implements LockFactory {
         collection.createIndex(new Document("expires", 1), new IndexOptions().expireAfter(0L, TimeUnit.MILLISECONDS));
 
         return collection;
+    }
+
+    @Override
+    public CompletableFuture<String> getPassword(String key) {
+        return CompletableFuture.supplyAsync(()-> {
+            Document lockDoc = locksCollection.find(new Document("_id", key)).first();
+            return lockDoc != null ? lockDoc.getString("password") : null;
+        });
     }
 }

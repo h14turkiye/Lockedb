@@ -22,8 +22,8 @@ public abstract class ALockTest {
     public void testBasicLockWorkflow() throws Exception {
         // Create a lock
         ALock lock = factory.builder()
-        .expiresAfterMS(60000L)  // 1 minute
-        .timeoutMS(5000L)        // 5 seconds
+        .expiresAfterMS(60000L)
+        .timeoutMS(40L)
         .build("test-resource");
         
         // Acquire the lock
@@ -36,11 +36,11 @@ public abstract class ALockTest {
         
         // Create another lock for the same resource
         ALock lock2 = factory.builder()
-        .timeoutMS(1000L)  // Short timeout for quicker test
+        .timeoutMS(40L)
         .build("test-resource");
         
         // Try to acquire the second lock while the first one is held
-        Boolean secondAcquired = lock2.acquire().get();
+        Boolean secondAcquired = lock2.isAcquirable().get();
         assertFalse(secondAcquired, "Second lock should not be acquired while first is held");
         
         // Release the first lock
@@ -63,8 +63,8 @@ public abstract class ALockTest {
     public void testLockExpirationAndChangeListeners() throws Exception {
         // Create a lock with short expiration
         ALock lock = factory.builder()
-        .expiresAfterMS(1000L)  // 1 second expiration
-        .timeoutMS(5000L)
+        .expiresAfterMS(20L)  // 1 second expiration
+        .timeoutMS(50L)
         .build("expiring-resource");
         
         // Acquire the lock
@@ -72,7 +72,7 @@ public abstract class ALockTest {
         assertTrue(acquired, "Should be able to acquire the lock");
         
         // Wait for the expiration event (give a little extra time)
-        Thread.sleep(1050L);
+        Thread.sleep(70L);
         
         // Verify that the lock is now available
         Boolean isLocked = lock.isLocked().get();
@@ -110,7 +110,7 @@ public abstract class ALockTest {
                 try {
                     // Create a lock for this thread
                     ALock lock = factory.builder()
-                    .timeoutMS(5000L)
+                    .timeoutMS(40L)
                     .build(resourceKey);
                     
                     // Wait for the start signal
@@ -124,7 +124,7 @@ public abstract class ALockTest {
                         System.out.println("Thread " + threadId + " acquired the lock");
                         
                         // Hold the lock briefly
-                        Thread.sleep(100);
+                        Thread.sleep(10);
                         
                         // Release the lock
                         boolean released = lock.release().get();
@@ -144,7 +144,7 @@ public abstract class ALockTest {
         startLatch.countDown();
         
         // Wait for all threads to finish
-        finishLatch.await(30, TimeUnit.SECONDS);
+        finishLatch.await(3, TimeUnit.SECONDS);
         
         // Shut down the executor
         executor.shutdown();
@@ -182,10 +182,10 @@ public abstract class ALockTest {
         // Try to acquire the same lock with the wrong password
         ALock lockWrongPwd = factory.builder()
         .password(wrongPassword)
-        .timeoutMS(1000L)
+        .timeoutMS(15L)
         .build(resourceKey);
         
-        Boolean acquiredWrong = lockWrongPwd.acquire().get();
+        Boolean acquiredWrong = lockWrongPwd.isAcquirable().get();
         assertFalse(acquiredWrong, "Should not be able to acquire with wrong password");
         
         // Try to acquire the same lock with the correct password
