@@ -1,6 +1,8 @@
 package com.h14turkiye.lockedb;
 
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -12,6 +14,8 @@ import lombok.Setter;
 * Implementations must provide mechanisms for acquiring, releasing, and checking lock status.
 */
 public abstract class ALock {
+
+    protected final String uuid = UUID.randomUUID().toString();
     
     /** The unique key identifying the lock. */
     @Getter @Setter protected String key;
@@ -83,4 +87,21 @@ public abstract class ALock {
     * @return a CompletableFuture that resolves to {@code true} if the lock is acquirable, otherwise {@code false}.
     */
     public abstract CompletableFuture<Boolean> isAcquirable();
+
+    protected CompletableFuture<Boolean> acquireFuture;
+
+    protected void scheduleExpirationRemoval() {
+        if (expiresAfterMS > 0) {
+            schedule(() -> {
+                try {
+                    if (!acquireFuture.isDone() || acquireFuture.get()) {
+                        release();
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }, expiresAfterMS);
+        }
+    }
+    
 }

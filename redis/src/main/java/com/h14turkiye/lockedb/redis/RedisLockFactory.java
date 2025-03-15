@@ -25,12 +25,12 @@ public class RedisLockFactory implements LockFactory {
     
     // Builder pattern approach
     public ALockBuilder builder() {
-        return new RedisLockBuilder(redisClient);
+        return new RedisLockBuilder();
     }
     
     // Direct creation approach
     public ALock createLock(String key) {
-        return new RedisLock(redisClient, key);
+        return new RedisLock(key);
     }
 
     private RedisAsyncCommands<String, String> rcommands;

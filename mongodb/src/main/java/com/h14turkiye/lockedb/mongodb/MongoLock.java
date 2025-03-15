@@ -1,6 +1,5 @@
 package com.h14turkiye.lockedb.mongodb;
 
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -19,8 +18,9 @@ import com.mongodb.client.model.changestream.OperationType;
 public class MongoLock extends ALock {
     // Use a ConcurrentHashMap for thread-safe operations and faster lookups.
     public static ConcurrentMap<String, MongoLock> _retryingLocks = new ConcurrentHashMap<>();
-
+    
     public static void _startWatch(final MongoCollection<Document> collection) {
+        MongoLock.locksCollection = collection;
         executor.submit(() -> {
             collection.watch().forEach((Consumer<ChangeStreamDocument<Document>>) event -> {
                 if (event.getOperationType().equals(OperationType.DELETE)) {
@@ -35,21 +35,19 @@ public class MongoLock extends ALock {
         });
     }
     
-    private final MongoCollection<Document> locksCollection;
-    private CompletableFuture<Boolean> acquireFuture;
+    private static MongoCollection<Document> locksCollection;
     
-    private final UUID uuid = UUID.randomUUID();
     
-    public MongoLock(final MongoCollection<Document> locksCollection, final String key) {
-        this.locksCollection = locksCollection;
+    
+    public MongoLock(final String key) {
         this.key = key;
     }
-
+    
     public CompletableFuture<Boolean> release() {
         acquireFuture.complete(null);
         try {
             return CompletableFuture.supplyAsync(() -> {
-                return (locksCollection.deleteOne(new Document("_id", key).append("password", password).append("uuid", uuid.toString())).getDeletedCount() == 1);
+                return (locksCollection.deleteOne(new Document("_id", key).append("password", password).append("uuid", uuid)).getDeletedCount() == 1);
             }, executor);
             
         } catch (final Exception e) {
@@ -64,11 +62,16 @@ public class MongoLock extends ALock {
     
     public CompletableFuture<Boolean> isAcquirable() {
         return CompletableFuture.supplyAsync(() -> {
-            final long currentTime = System.currentTimeMillis();
-            final Document lock = locksCollection.find(new Document("_id", key)).first();
-            return lock == null || lock.getLong("expires") < currentTime || (password != null && password.equals(lock.getString("password")));
+            long currentTime = System.currentTimeMillis();
+            Document lock = locksCollection.find(new Document("_id", key)).first();
+            
+            if (lock == null) return true;
+            
+            long expires = (long) lock.getOrDefault("expires", 0L);
+            return expires < currentTime || (password != null && password.equals(lock.getString("password")));
         }, executor);
     }
+    
     
     public CompletableFuture<Boolean> acquire() {
         acquireFuture = new CompletableFuture<>();
@@ -80,47 +83,45 @@ public class MongoLock extends ALock {
         return locksCollection.find(new Document("_id", key)).first();
     }
     
-    private CompletableFuture<Void> attemptLockAcquisition() {
-        return CompletableFuture.runAsync(() -> {
-            if (acquireFuture.isDone()) {
-                // [DEBUG] Lock already determined as non-acquirable.
+    private void attemptLockAcquisition() {
+        if (acquireFuture.isDone()) {
+            // [DEBUG] Lock already determined as non-acquirable.
+            return;
+        }
+        
+        if (timeoutMS > 0) {
+            // [DEBUG] Scheduling lock timeout in " + timeoutMS + "ms
+            schedule(() -> acquireFuture.complete(false), timeoutMS);
+        }
+        
+        // [DEBUG] Checking if lock is acquirable...
+        this.isAcquirable().thenApplyAsync((bool) -> {
+            // [DEBUG] isAcquirable result: 
+            if (password != null && bool) {
+                Document filter = new Document("_id", key).append("password", password);
+                final Document update = new Document("$set", new Document("expires", System.currentTimeMillis() + expiresAfterMS).append("uuid", uuid).append("password", password).append("_id", key));
+                // [DEBUG] Updating lock document in MongoDB.
+                locksCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
+                acquireFuture.complete(true);
+                scheduleExpirationRemoval();
+                return true;
+            }
+            return false;
+        }, executor).thenAcceptAsync(passwordAcquired -> {
+            if (passwordAcquired) {
                 return;
             }
             
-            if (timeoutMS > 0) {
-                // [DEBUG] Scheduling lock timeout in " + timeoutMS + "ms
-                schedule(() -> acquireFuture.complete(false), timeoutMS);
-            }
-            
-            if (password != null) { // If the password exists
-                // [DEBUG] Checking if lock is acquirable...
-                this.isAcquirable().thenAcceptAsync((bool) -> {
-                    // [DEBUG] isAcquirable result: 
-                    if (bool) {
-                        Document filter = new Document("_id", key).append("password", password);
-                        final Document update = new Document("$set", new Document("expires", System.currentTimeMillis() + expiresAfterMS).append("uuid", uuid.toString()).append("password", password).append("_id", key));
-                        // [DEBUG] Updating lock document in MongoDB.
-                        locksCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
-                        acquireFuture.complete(true);
-                        scheduleExpirationRemoval();
-                    }
-                });
-                if (acquireFuture.isDone()) {
-                    // [DEBUG] Lock acquired via password match.
-                    return;
-                }
-            }
-            
             final Document lockDoc = new Document("_id", key)
-                .append("password", password)
-                .append("uuid", uuid.toString())
-                .append("expires", System.currentTimeMillis() + expiresAfterMS);
-    
+            .append("password", password)
+            .append("uuid", uuid)
+            .append("expires", System.currentTimeMillis() + expiresAfterMS);
+            
             try {
                 // [DEBUG] Attempting to create lock document.
                 locksCollection.insertOne(lockDoc);
                 // [DEBUG] Lock successfully acquired.
-    
+                
                 scheduleExpirationRemoval();
                 acquireFuture.complete(true);
                 return;
@@ -134,13 +135,8 @@ public class MongoLock extends ALock {
                 }
             }
         }, executor);
+        
+        
     }    
-    
-    private void scheduleExpirationRemoval() {
-        // Schedule a task to remove the document if expiration exists
-        if (expiresAfterMS > 0) {
-            schedule(this::release, expiresAfterMS);
-        }
-    }
     
 }

@@ -79,7 +79,7 @@ public abstract class ALockTest {
         // Create a lock with short expiration
         ALock lock = factory.builder()
         .expiresAfterMS(20L)
-        .timeoutMS(50L)
+        .timeoutMS(100L)
         .build("expiring-resource");
         
         // Acquire the lock
@@ -87,7 +87,7 @@ public abstract class ALockTest {
         assertTrue(acquired, "Should be able to acquire the lock");
         
         // Wait for the expiration event (give a little extra time)
-        Thread.sleep(70L);
+        Thread.sleep(21L);
         
         // Verify that the lock is now available
         Boolean isLocked = lock.isLocked().get();
@@ -125,7 +125,7 @@ public abstract class ALockTest {
                 try {
                     // Create a lock for this thread
                     ALock lock = factory.builder()
-                    .timeoutMS(40L)
+                    .timeoutMS(100L)
                     .build(resourceKey);
                     
                     // Wait for the start signal

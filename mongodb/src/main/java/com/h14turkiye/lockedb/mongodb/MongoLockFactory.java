@@ -25,16 +25,18 @@ public class MongoLockFactory implements LockFactory {
     public MongoLockFactory(MongoDatabase db) {
         locksCollection = db.listCollectionNames().into(new ArrayList<>()).contains("locks") ?
         db.getCollection("locks") : createLocksCollection(db);
+
+        MongoLock._startWatch(locksCollection);
     }
     
     // Builder pattern approach
     public ALockBuilder builder() {
-        return new MongoLockBuilder(locksCollection);
+        return new MongoLockBuilder();
     }
     
     // Direct creation approach
     public ALock createLock(String key) {
-        return new MongoLock(locksCollection, key);
+        return new MongoLock(key);
     }
 
      /**
